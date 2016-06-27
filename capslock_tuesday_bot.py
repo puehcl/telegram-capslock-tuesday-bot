@@ -7,7 +7,7 @@ import telegram.botapi.botbuilder as botbuilder
 
 def was_sent_on_tuesday(date):
     d = datetime.datetime.fromtimestamp(int(date))
-    return d.isoweekday() == 1
+    return d.isoweekday() == 2
 
 def text_is_lowercase(update):
     print(update)
