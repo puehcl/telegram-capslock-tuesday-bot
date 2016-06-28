@@ -1,9 +1,39 @@
 #!/usr/bin/python3
 
 import datetime
+import random
+import re
 
 import telegram.botapi.botbuilder as botbuilder
 
+IGNORED_CHARACTERS = "ß"
+
+PREFIXES = ["surely you meant",
+            "say it loud, say it proud",
+            "u wot m8",
+            "heresy against the caps",
+            "scream it like you mean it",
+            "shame",
+            "traitor",
+            "it's capslock tuesday you wanker",
+            "look here, this is how it works",
+            "i'm gonna help you a little bit since it seems you can't figure it out",
+            "oh golly, another one"]
+
+URL_PATTERN = r"(http[s]?://)?([a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+){1}(\.[a-zA-Z0-9\-_]+)*(/[a-zA-Z0-9\-_]+)*(\.?[a-zA-Z0-9\-_]+){1}(#[a-zA-Z0-9\.\-_]+)?"
+URL_REGEX = re.compile(URL_PATTERN)
+
+def remove_urls(text):
+    while True:
+        m = False
+        for match in URL_REGEX.finditer(text):
+            m = True
+            print("found url", match.group())
+            text = text[:match.start()] + text[match.end():]
+            print("new text is", text)
+        if not m:
+            break
+    return text
 
 def was_sent_on_tuesday(date):
     d = datetime.datetime.fromtimestamp(int(date))
@@ -14,39 +44,29 @@ def text_is_lowercase(update):
     if not update.text:
         return False
     if was_sent_on_tuesday(update.date):
-        for c in update.text:
-            if c.islower():
+        text = remove_urls(update.text)
+        for c in text:
+            if c in IGNORED_CHARACTERS:
+                pass
+            elif c.islower():
                 return True
     return False
 
 def shame(update):
-    result = "*SHAME:* "
-    shaming = False
+    text = "*" + PREFIXES[random.randint(0, len(PREFIXES)-1)].upper() + ":* \""
     for c in update.text:
-        if c.islower():
-            if not shaming:
-                result = result + " *"
-            result = result + c
-            shaming = True
-        elif c.isalpha():
-            if shaming:
-                result = result + "* "
-            result = result + c
-            shaming = False
+        if c in IGNORED_CHARACTERS:
+            text = text + c
         else:
-            result = result + c
-    if shaming:
-        result = result + "* "
-    return result
-
-def did_you_mean(update):
-    return "*SURELY YOU MEANT:* \"" + update.text.upper() + "\" ?"
+            text = text + c.upper()
+    text = text + "\" !!!"
+    return text
 
 if __name__ == "__main__":
     while True:
         try:
             bot = botbuilder.BotBuilder(apikey_file="key.txt") \
-                .send_message_when(text_is_lowercase, did_you_mean, optionals={"parse_mode":"Markdown"}) \
+                .send_message_when(text_is_lowercase, shame, optionals={"parse_mode":"Markdown"}) \
                 .build()
             bot.start()
         except Exception as e:
