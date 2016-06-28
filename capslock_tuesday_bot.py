@@ -20,8 +20,10 @@ PREFIXES = ["surely you meant",
             "i'm gonna help you a little bit since it seems you can't figure it out",
             "oh golly, another one"]
 
-URL_PATTERN = r"(http[s]?://)?([a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+){1}(\.[a-zA-Z0-9\-_]+)*(/[a-zA-Z0-9\-_]+)*(\.?[a-zA-Z0-9\-_]+){1}(#[a-zA-Z0-9\.\-_]+)?"
+URL_PATTERN = r"(http[s]?://)?([a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+){1}(\.[a-zA-Z0-9\-_]+)*(/[a-zA-Z0-9\-_\.]*)*(\.?[a-zA-Z0-9\-_\?=&]+){1}(#[a-zA-Z0-9\.\-_\?=&]+)?"
 URL_REGEX = re.compile(URL_PATTERN)
+
+DISABLED_CHATS = []
 
 def remove_urls(text):
     while True:
@@ -41,6 +43,8 @@ def was_sent_on_tuesday(date):
 
 def text_is_lowercase(update):
     print(update)
+    if update.chat.id in DISABLED_CHATS:
+        return False
     if not update.text:
         return False
     if was_sent_on_tuesday(update.date):
@@ -62,10 +66,21 @@ def shame(update):
     text = text + "\" !!!"
     return text
 
+def enable(update):
+    print("enabling bot for chat", update.chat.id)
+    DISABLED_CHATS.remove(update.chat.id)
+
+def disable(update):
+    print("disabling bot for chat", update.chat.id)
+    if not update.chat.id in DISABLED_CHATS:
+        DISABLED_CHATS.append(update.chat.id)
+
 if __name__ == "__main__":
     while True:
         try:
             bot = botbuilder.BotBuilder(apikey_file="key.txt") \
+                .do_when("enable", enable, True)\
+                .do_when("disable", disable, True)\
                 .send_message_when(text_is_lowercase, shame, optionals={"parse_mode":"Markdown"}) \
                 .build()
             bot.start()
